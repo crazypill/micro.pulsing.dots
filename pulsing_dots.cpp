@@ -21,6 +21,7 @@
 // Constants and static data----------------------------------------------------
 
 static const int8_t   kFlashDelayMS   = 100;
+static const uint8_t  kMinDotSteps    = 3;
 
 #ifdef TWO_DISPLAYS
 static uint8_t        s_image_buffer[18 * 16];                           // Buffer for rendering image (2x 9 * 16 buffers)
@@ -340,7 +341,7 @@ void pulsing_dots_setup()
     for( int i = 0; i < kNumDots; i++ )
     {
 #ifdef RANDOM_DURATION
-        s_dot[i].num_steps      = random( 0, kNumSteps );
+        s_dot[i].num_steps      = random( kMinDotSteps, kNumSteps );
         s_dot[i].step           = random( 0, s_dot[i].num_steps );
 #else    
         s_dot[i].num_steps      = kNumSteps;
