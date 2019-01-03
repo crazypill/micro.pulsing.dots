@@ -56,11 +56,9 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 static const int8_t   kFlashDelayMS   = 100;
 static const bool     kShouldErase    = true;
 
+static uint8_t        s_display_one_page = 0;     // Front/back buffer control
 #ifdef TWO_DISPLAYS
-static uint8_t        s_display_one_page = 0;     // Front/back buffer control
 static uint8_t        s_display_two_page = 0;     // Front/back buffer control for second display
-#else
-static uint8_t        s_display_one_page = 0;     // Front/back buffer control
 #endif
 
 

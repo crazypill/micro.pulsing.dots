@@ -29,14 +29,13 @@ static const int8_t   kMaxWidth       = 16;
 
 #ifdef TWO_DISPLAYS
 static const uint8_t  kMaxDots           = 200;
-static const uint8_t  kNumDots           = kMaxDots;
 static const int8_t   kMaxHeight         = kDeviceHeight * 2;            // 2 devices stacked
 #else
 static const uint8_t  kMaxDots           = 100;
-static const uint8_t  kNumDots           = kMaxDots;
 static const int8_t   kMaxHeight         = kDeviceHeight;
 #endif
 
+static const uint8_t  kNumDots           = kMaxDots;
 
 // Data types -----------------------------------------------------------------
 
