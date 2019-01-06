@@ -37,11 +37,16 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
   #define Serial SERIAL_PORT_USBVIRTUAL
 #endif
 
+#define PIN_ENCODER_A      4
+#define PIN_ENCODER_B      5
+#define TRINKET_PINx       PIND
+#define PIN_ENCODER_SWITCH 3
+
 // NOTE: that I could not get the Adafruit LED Matrix Driver to work on address 0x75
 #define DISPLAY1 0x74        // I2C address of Charlieplex matrix
 #define DISPLAY2 0x77        // I2C address of Charlieplex matrix
 
-#define Z_IS_UP
+//#define Z_IS_UP   // our dev board has z up but in production the boards are standing up(sidedown)
 #define USE_ACCELEROMETER
 //#define DUMP_ACCEL
 
@@ -170,14 +175,25 @@ void flash_led( uint8_t num_pulses = 1 )
 }
 
 
+void setup_encoder()
+{
+  // set pins as input with internal pull-up resistors enabled
+  pinMode( PIN_ENCODER_A,      INPUT_PULLUP );
+  pinMode( PIN_ENCODER_B,      INPUT_PULLUP );
+  pinMode( PIN_ENCODER_SWITCH, INPUT_PULLUP );
+}
+ 
+ 
+
 // SETUP FUNCTION - RUNS ONCE AT STARTUP -----------------------------------
 
 void setup() 
 {
-    pinMode( LED_BUILTIN, OUTPUT );
-    flash_led( 2 );
+//    pinMode( LED_BUILTIN, OUTPUT );
+//    flash_led( 2 );
 
     pulsing_dots_setup();
+    setup_encoder();
   
 #ifdef POWER_SAVINGS
   power_all_disable(); // Stop peripherals: ADC, timers, etc. to save power
@@ -234,6 +250,8 @@ void loop()
   power_twi_enable();
 #endif
 
+//  handle_encoder();
+
 #ifdef USE_ACCELEROMETER
   float           accel_scale = 0.5f;
   sensors_event_t event       = {0}; 
@@ -256,7 +274,7 @@ void loop()
     pulsing_dots_draw( event.acceleration.y * accel_scale, event.acceleration.x * accel_scale, event.acceleration.z * accel_scale, kShouldErase );
   #else
     // display is standing vertically - Y is up
-    pulsing_dots_draw( event.acceleration.y * accel_scale, event.acceleration.z * accel_scale, event.acceleration.x * accel_scale, kShouldErase );
+    pulsing_dots_draw( event.acceleration.z * accel_scale, -event.acceleration.y * accel_scale, event.acceleration.x * accel_scale, kShouldErase );
   #endif // Z_IS_UP
 #else
     pulsing_dots_draw( 0, 0, 0, kShouldErase );
@@ -292,3 +310,9 @@ ISR( WDT_vect )
 #endif
 
 // EOF
+
+
+
+
+
+

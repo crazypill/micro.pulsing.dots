@@ -370,6 +370,10 @@ void pulsing_dots_draw( float x, float y, float z, bool erase )
     // erase buffer
     if( erase )
         memset( s_buffer_ptr, 0, sizeof( s_image_buffer ) );
+    
+    // erase to non-black for a test to increase brightness
+//    if( erase )
+//        memset( s_buffer_ptr, 0xff, sizeof( s_image_buffer ) );
 
     blob_accel( s_buffer_ptr, x, y, z );
 
