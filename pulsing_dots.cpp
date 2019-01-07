@@ -6,6 +6,7 @@
 //
 
 #include "pulsing_dots.h"
+#include "arduino_utilities.h"
 
 
 // Defines -----------------------------------------------------------------
@@ -20,7 +21,6 @@
 
 // Constants and static data----------------------------------------------------
 
-static const int8_t   kFlashDelayMS   = 100;
 static const uint8_t  kMinDotSteps    = 3;
 
 #ifdef TWO_DISPLAYS
@@ -336,8 +336,6 @@ void all_on_low( uint8_t* buff )
 
 void pulsing_dots_setup() 
 {
-    randomSeed( analogRead( 0 ) );
-
     for( int i = 0; i < kNumDots; i++ )
     {
 #ifdef RANDOM_DURATION
@@ -351,7 +349,7 @@ void pulsing_dots_setup()
         s_dot[i].y              = random( 0, kMaxHeight );
 
         // now make a few dots exceptionally bright
-        if( random( 0, 1 ) )
+        if( coin_flip() )
           s_dot[i].max_brightness = kOverBrightness;
         else
           s_dot[i].max_brightness = random( 0, kMaxBrightness );

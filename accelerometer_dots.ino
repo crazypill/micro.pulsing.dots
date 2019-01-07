@@ -25,7 +25,9 @@
 #include <avr/sleep.h>     // sleep to minimize current draw
 #endif
 
+#include "flickering_lights.h"
 #include "pulsing_dots.h"
+#include "arduino_utilities.h"
 
 
 // Defines -----------------------------------------------------------------
@@ -46,9 +48,8 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 #define DISPLAY1 0x74        // I2C address of Charlieplex matrix
 #define DISPLAY2 0x77        // I2C address of Charlieplex matrix
 
-//#define Z_IS_UP   // our dev board has z up but in production the boards are standing up(sidedown)
+#define Z_IS_UP   // our dev board has z up but in production the boards are standing up(sidedown)
 #define USE_ACCELEROMETER
-//#define DUMP_ACCEL
 
 #ifndef ARDUINO_SAMD_ZERO
 // turn this define on for power savings on boards that support it
@@ -163,16 +164,6 @@ void buffer_frame( uint8_t address, const uint8_t* buff, uint8_t* page )
 #pragma mark -
 
 
-void flash_led( uint8_t num_pulses = 1 )
-{
-  for( int i = 0; i < num_pulses; i++ )
-  {
-    digitalWrite( LED_BUILTIN, HIGH );
-    delay( kFlashDelayMS );
-    digitalWrite( LED_BUILTIN, LOW );
-    delay( kFlashDelayMS );
-  }
-}
 
 
 void setup_encoder()
@@ -189,12 +180,11 @@ void setup_encoder()
 
 void setup() 
 {
-//    pinMode( LED_BUILTIN, OUTPUT );
-//    flash_led( 2 );
-
+    utilities_setup();
+    flickering_lights_setup();
     pulsing_dots_setup();
     setup_encoder();
-  
+    
 #ifdef POWER_SAVINGS
   power_all_disable(); // Stop peripherals: ADC, timers, etc. to save power
   power_twi_enable();  // But switch I2C back on; need it for display
@@ -252,19 +242,14 @@ void loop()
 
 //  handle_encoder();
 
+// see how fast we can get this to flicker 
+//  toggle_led();
+  flickering_lights_tick();
+
 #ifdef USE_ACCELEROMETER
   float           accel_scale = 0.5f;
   sensors_event_t event       = {0}; 
   lis.getEvent( &event );
-
-#ifdef DUMP_ACCEL
-  /* Display the results (acceleration is measured in m/s^2) */
-  Serial.print("xyz: ("); Serial.print(event.acceleration.x);
-  Serial.print(", ");     Serial.print(event.acceleration.y); 
-  Serial.print(", ");     Serial.print(event.acceleration.z); 
-  Serial.print(")");  
-  Serial.println();
-#endif  // DUMP_ACCEL
 #endif  // USE_ACCELEROMETER
 
     // render a frame
