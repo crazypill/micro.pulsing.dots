@@ -39,11 +39,6 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
   #define Serial SERIAL_PORT_USBVIRTUAL
 #endif
 
-#define PIN_ENCODER_A      4
-#define PIN_ENCODER_B      5
-#define TRINKET_PINx       PIND
-#define PIN_ENCODER_SWITCH 3
-
 // NOTE: that I could not get the Adafruit LED Matrix Driver to work on address 0x75
 #define DISPLAY1 0x74        // I2C address of Charlieplex matrix
 #define DISPLAY2 0x77        // I2C address of Charlieplex matrix
@@ -59,7 +54,6 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 
 // Constants -----------------------------------------------------------------
 
-static const int8_t   kFlashDelayMS   = 100;
 static const bool     kShouldErase    = true;
 
 static uint8_t        s_display_one_page = 0;     // Front/back buffer control
@@ -165,17 +159,6 @@ void buffer_frame( uint8_t address, const uint8_t* buff, uint8_t* page )
 
 
 
-
-void setup_encoder()
-{
-  // set pins as input with internal pull-up resistors enabled
-  pinMode( PIN_ENCODER_A,      INPUT_PULLUP );
-  pinMode( PIN_ENCODER_B,      INPUT_PULLUP );
-  pinMode( PIN_ENCODER_SWITCH, INPUT_PULLUP );
-}
- 
- 
-
 // SETUP FUNCTION - RUNS ONCE AT STARTUP -----------------------------------
 
 void setup() 
@@ -183,7 +166,6 @@ void setup()
     utilities_setup();
     flickering_lights_setup();
     pulsing_dots_setup();
-    setup_encoder();
     
 #ifdef POWER_SAVINGS
   power_all_disable(); // Stop peripherals: ADC, timers, etc. to save power
@@ -239,8 +221,6 @@ void loop()
 #ifdef POWER_SAVINGS
   power_twi_enable();
 #endif
-
-//  handle_encoder();
 
 // see how fast we can get this to flicker 
 //  toggle_led();
