@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:accelerometer_dots.ino"
+      assignedFileDataType = "public.c-plus-plus-source">
+   </FileRef>
+   <FileRef
+      location = "group:arduino_utilities.h">
+   </FileRef>
+   <FileRef
+      location = "group:flickering_lights.cpp">
+   </FileRef>
+   <FileRef
+      location = "group:flickering_lights.h">
+   </FileRef>
+   <FileRef
+      location = "group:pulsing_dots.cpp">
+   </FileRef>
+   <FileRef
+      location = "group:pulsing_dots.h">
+   </FileRef>
+</Workspace>
