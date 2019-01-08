@@ -138,7 +138,11 @@ void toggle_led()
 
 bool flicker_random( FlickerState* state )
 {
-    digitalWrite( LED_FLICKER_PIN, coin_flip() ? HIGH : LOW );     
+    if( coin_flip() )
+        analogWrite( LED_FLICKER_PIN, random( 0, 256 ) );   // flicker at different brightnesses like a real broken bulb    
+    else
+        digitalWrite( LED_FLICKER_PIN, LOW );
+             
     return true;
 }
 
