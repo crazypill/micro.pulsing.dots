@@ -426,20 +426,18 @@ void randomly_fill_stack()
 
 void stack_push( FlickerFunc func )
 {
-    s_func_stack[s_func_stack_index++] = func;
     if( s_func_stack_index > STACK_MAX )
     {
         s_func_stack_index = STACK_MAX - 1;
         Serial.println( "Flicker stack overflow!" );
+        return;
     }
+    s_func_stack[s_func_stack_index++] = func;
 }
 
 
 FlickerFunc stack_pop()
 {
-    if( s_func_stack_index < 0 || s_func_stack_index >= STACK_MAX )
-        return NULL;
-         
     FlickerFunc func = s_func_stack[--s_func_stack_index];
     if( s_func_stack_index < 0 )
     {
@@ -447,7 +445,6 @@ FlickerFunc stack_pop()
         Serial.println( "Flicker stack underflow!" );
         return NULL;
     }
-    
     return func;
 }
 
