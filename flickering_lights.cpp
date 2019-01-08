@@ -351,7 +351,8 @@ bool flicker_off( FlickerState* state )
 
 bool flicker_mostly_on( FlickerState* state )
 {
-    // this just a lot of spaced-out blinks
+    // this just a lot of spaced-out blinks - use a bit array with each bit being of a particular interval,
+    // then do this for each 1 bit, and black out for 0 bits.
     analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
@@ -359,7 +360,7 @@ bool flicker_mostly_on( FlickerState* state )
 
 bool flicker_mostly_off( FlickerState* state )
 {
-    // this just a lot of very-very-spaced-out blinks
+    // this just a lot of very-very-spaced-out blinks -- see above comment...
     analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
