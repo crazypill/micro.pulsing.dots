@@ -46,7 +46,10 @@ enum
      kFlickerDropoutBlipMinTimeMS     = 1200,      // this is the time we wait till blip (random between min and max)
      kFlickerDropoutBlipMaxTimeMS     = 3000,
      kFlickerDropoutBlipMinDurationMS = 50,
-     kFlickerDropoutBlipMaxDurationMS = 90
+     kFlickerDropoutBlipMaxDurationMS = 90,
+     
+     kFlickerBrownoutMinIntensity = 10,
+     kFlickerBrownoutMaxIntensity = 80
 };
 
 // this is the function stack
@@ -67,6 +70,7 @@ static FlickerFunc  s_flicker_func  = NULL;
 
 bool flicker_random( FlickerState* state );
 bool flicker_dropout( FlickerState* state );
+bool flicker_brownout( FlickerState* state );
 bool flicker_on( FlickerState* state );
 bool flicker_off( FlickerState* state );
 bool flicker_mostly_on( FlickerState* state );
@@ -90,7 +94,7 @@ void flickering_lights_setup()
     pinMode( LED_FLICKER_PIN, OUTPUT );
 
     memset( &s_flicker_state, 0, sizeof( s_flicker_state ) );
-    s_flicker_func = flicker_dropout;
+    s_flicker_func = flicker_brownout;//flicker_dropout;
 }
 
  
@@ -101,7 +105,7 @@ void flickering_lights_tick()
     // just keep calling the routine over and over until it is done
     if( s_flicker_func && s_flicker_func( &s_flicker_state ) )
     {
-        if( s_flicker_func == flicker_dropout )
+        if( s_flicker_func == flicker_brownout )//flicker_dropout )
         {
             ++s_counter;
             if( s_counter > 5 ) // drop out 5 times
@@ -248,6 +252,88 @@ bool flicker_dropout( FlickerState* state )
     if( state->step == kFlickerDropoutState_DropoutDone )
     {
         digitalWrite( LED_FLICKER_PIN, LOW );
+        return interval > kFlickerDropoutDarkTimeMS;
+    }
+
+    return true;
+}
+
+
+bool flicker_brownout( FlickerState* state )
+{
+    uint32_t current  = utime();
+    uint32_t interval = current - state->start_time;    
+    
+    // first step is to wait a long time with the light on, so we take the starting time
+    if( state->step == kFlickerDropoutState_Start )
+    {
+        // turn on the light
+        digitalWrite( LED_FLICKER_PIN, HIGH );
+        state->start_time = current;   // take the time...
+        state->step++;  // go to next step
+        return false;   // we aren't done yet
+    }
+        
+    // next step is to look at the time, stay here till we cross the threshold
+    if( state->step == kFlickerDropoutState_WaitWithLightOn )
+    {
+        if( interval >= kFlickerDropoutStateWaitTimeMS )
+            state->step++;
+        return false;
+    }
+    
+
+    if( state->step == kFlickerDropoutState_FlickerStart )
+    {
+        state->start_time = current;
+        state->step++;
+        return false;
+    }
+    
+    if( state->step == kFlickerDropoutState_Flicker )
+    {
+        digitalWrite( LED_FLICKER_PIN, coin_flip() ? HIGH : LOW );
+        if( interval >= kFlickerDropoutFlickerTimeMS )
+            state->step++;
+        return false;
+    }
+
+    if( state->step == kFlickerDropoutState_Dropout )
+    {
+        analogWrite( LED_FLICKER_PIN, random( kFlickerBrownoutMinIntensity, kFlickerBrownoutMaxIntensity ) );
+        state->start_time = current;    
+        state->param      = random( kFlickerDropoutBlipMinTimeMS, kFlickerDropoutBlipMaxTimeMS );    // when to blip (blip might not even happen as its value is also random)
+        state->step++;
+        return false;
+    }
+
+    // wait with the light off
+    if( state->step == kFlickerDropoutState_DropoutBlipStart )
+    {
+        if( interval >= state->param )  // random wait time here
+        {
+            state->start_time = current;
+            state->param = random( kFlickerDropoutBlipMinDurationMS, kFlickerDropoutBlipMaxDurationMS );
+            state->step++;
+        }
+        return false;
+    }
+
+    if( state->step == kFlickerDropoutState_DropoutBlip )
+    {
+        flicker_random( NULL );
+        if( interval >= state->param )  // random wait time again
+        {
+            state->start_time = current;
+            state->param = 0;
+            state->step++;
+        }
+        return false;
+    }
+
+    if( state->step == kFlickerDropoutState_DropoutDone )
+    {
+        analogWrite( LED_FLICKER_PIN, random( kFlickerBrownoutMinIntensity, kFlickerBrownoutMaxIntensity ) );
         return interval > kFlickerDropoutDarkTimeMS;
     }
 
