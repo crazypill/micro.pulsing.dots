@@ -57,12 +57,10 @@ enum
 
 // this is the function stack
 static FlickerFunc  s_func_stack[STACK_MAX] = { NULL };
-static FlickerFunc* s_func_stack_base       = &s_func_stack[0];  
-static FlickerFunc* s_func_stack_top        = &s_func_stack[STACK_MAX];  
-static FlickerFunc* s_func_stack_pointer    = s_func_stack_base;  
+static int32_t      s_func_stack_index      = 0;  
 
 
-// Constants and static data----------------------------------------------------
+// Constants and static data ---------------------------------------------
 
 static const uint16_t kFlashDelayMS = 100;
 
@@ -70,6 +68,9 @@ static int32_t      s_counter       = 0;
 static bool         s_toggle_state  = false;
 static FlickerState s_flicker_state = {0};
 static FlickerFunc  s_flicker_func  = NULL;
+
+
+// Forward declares ------------------------------------------------------
 
 bool flicker_random( FlickerState* state );
 bool flicker_dropout( FlickerState* state );
@@ -81,6 +82,12 @@ bool flicker_mostly_off( FlickerState* state );
 bool flicker_flicker_ramp_on( FlickerState* state );
 bool flicker_flicker_ramp_off( FlickerState* state );
 
+void fill_stack();
+
+void        stack_push( FlickerFunc );
+FlickerFunc stack_pop();
+int32_t     stack_depth();
+
 
 // Code -----------------------------------------------------------------
 
@@ -91,14 +98,23 @@ void flickering_lights_setup()
     pinMode( LED_FLICKER_PIN, OUTPUT );
 
     memset( &s_flicker_state, 0, sizeof( s_flicker_state ) );
-    s_flicker_func = flicker_dropout; // flicker_brownout
+    fill_stack();
 }
 
  
 void flickering_lights_tick()
 {
-    // change this code to get next function from a fairly dynamic stack -  !!@
+    if( !s_flicker_func )
+        fill_stack();
+        
+    // just keep calling the routine over and over until it is done
+    if( s_flicker_func && s_flicker_func( &s_flicker_state ) )
+    {
+        s_flicker_func = stack_pop();
+        memset( &s_flicker_state, 0, sizeof( s_flicker_state ) );   // clear this for next func
+    }
 
+/*
     // just keep calling the routine over and over until it is done
     if( s_flicker_func && s_flicker_func( &s_flicker_state ) )
     {
@@ -129,14 +145,8 @@ void flickering_lights_tick()
             
         memset( &s_flicker_state, 0, sizeof( s_flicker_state ) );   // clear this for next func
     }
+*/    
 }
-
-#pragma mark -
-
-// State stack -----------------------------------------------------------------
-
-
-
 
 #pragma mark -
 
@@ -388,7 +398,63 @@ bool flicker_flicker_ramp_off( FlickerState* state )
     return true;
 }
 
+#pragma mark -
 
 
+void fill_stack()
+{
+    stack_push( flicker_dropout );
+    stack_push( flicker_dropout );
+    stack_push( flicker_dropout );
+    stack_push( flicker_flicker_ramp_on );
+    stack_push( flicker_random );
+    
+    s_flicker_func = stack_pop();    
+}
+
+
+void randomly_fill_stack()
+{
+    // create array of all funcs, and randomly choose from it to fill the stack
+    // !!@
+}
+
+
+#pragma mark -
+
+// State stack -----------------------------------------------------------------
+
+void stack_push( FlickerFunc func )
+{
+    s_func_stack[s_func_stack_index++] = func;
+    if( s_func_stack_index > STACK_MAX )
+    {
+        s_func_stack_index = STACK_MAX - 1;
+        Serial.println( "Flicker stack overflow!" );
+    }
+}
+
+
+FlickerFunc stack_pop()
+{
+    if( s_func_stack_index < 0 || s_func_stack_index >= STACK_MAX )
+        return NULL;
+         
+    FlickerFunc func = s_func_stack[--s_func_stack_index];
+    if( s_func_stack_index < 0 )
+    {
+        s_func_stack_index = 0;
+        Serial.println( "Flicker stack underflow!" );
+        return NULL;
+    }
+    
+    return func;
+}
+
+
+int32_t stack_depth()
+{
+    return s_func_stack_index;
+}
 
 // EOF
