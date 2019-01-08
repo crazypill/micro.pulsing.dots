@@ -49,7 +49,10 @@ enum
      kFlickerDropoutBlipMaxDurationMS = 90,
      
      kFlickerBrownoutMinIntensity = 10,
-     kFlickerBrownoutMaxIntensity = 80
+     kFlickerBrownoutMaxIntensity = 80,
+
+     kFlickerFlourescentMinIntensity = 230,
+     kFlickerFlourescentMaxIntensity = 255
 };
 
 // this is the function stack
@@ -78,9 +81,8 @@ bool flicker_mostly_off( FlickerState* state );
 bool flicker_flicker_ramp_on( FlickerState* state );
 bool flicker_flicker_ramp_off( FlickerState* state );
 
-int32_t utime()
+static int32_t utime()
 {
-//    return micros();
     return millis();
 }
 
@@ -108,7 +110,7 @@ void flickering_lights_tick()
         if( s_flicker_func == flicker_brownout )//flicker_dropout )
         {
             ++s_counter;
-            if( s_counter > 5 ) // drop out 5 times
+            if( s_counter > 1 )
             {
                 s_counter = 0;
                 s_flicker_func = flicker_flicker_ramp_on;
@@ -369,6 +371,11 @@ bool flicker_flicker_ramp_on( FlickerState* state )
 {
     analogWrite( LED_FLICKER_PIN, state->step );
     state->step += 5;
+    
+    // brown-out flicker first
+    if( state->step > 220 )
+        analogWrite( LED_FLICKER_PIN, random( kFlickerBrownoutMinIntensity, kFlickerBrownoutMaxIntensity ) );
+
     if( state->step > 255 )
     {
         state->step = 0;
@@ -381,6 +388,8 @@ bool flicker_flicker_ramp_on( FlickerState* state )
 
 bool flicker_flicker_ramp_off( FlickerState* state )
 {
+//    if( state->step > 220 )
+//        analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
 
