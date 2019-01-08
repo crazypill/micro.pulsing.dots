@@ -13,7 +13,7 @@
 
 //#define LED_FLICKER_PIN  LED_BUILTIN
 #define LED_FLICKER_PIN  9
-#define STACK_MAX        5 // keep this low for testing...
+#define STACK_MAX        50
 
 typedef struct
 {
@@ -55,9 +55,24 @@ enum
      kFlickerFlourescentMaxIntensity = 255
 };
 
-// this is the function stack
-static FlickerFunc  s_func_stack[STACK_MAX] = { NULL };
-static int32_t      s_func_stack_index      = 0;  
+
+// Forward declares ------------------------------------------------------
+
+bool flicker_random( FlickerState* state );
+bool flicker_dropout( FlickerState* state );
+bool flicker_brownout( FlickerState* state );
+bool flicker_on( FlickerState* state );
+bool flicker_off( FlickerState* state );
+bool flicker_mostly_on( FlickerState* state );
+bool flicker_mostly_off( FlickerState* state );
+bool flicker_ramp_on( FlickerState* state );
+bool flicker_ramp_off( FlickerState* state );
+
+void randomly_fill_stack();
+
+void        stack_push( FlickerFunc );
+FlickerFunc stack_pop();
+int32_t     stack_depth();
 
 
 // Constants and static data ---------------------------------------------
@@ -69,24 +84,25 @@ static bool         s_toggle_state  = false;
 static FlickerState s_flicker_state = {0};
 static FlickerFunc  s_flicker_func  = NULL;
 
+// this is the function stack
+static FlickerFunc  s_func_stack[STACK_MAX] = { NULL };
+static int32_t      s_func_stack_index      = 0;  
 
-// Forward declares ------------------------------------------------------
+// we use this to randomize the array
+static FlickerFunc  s_func_array[] = 
+{ 
+    flicker_random,
+    flicker_dropout,
+    flicker_brownout,
+    flicker_on,
+    flicker_off,
+    flicker_mostly_on,
+    flicker_mostly_off,
+    flicker_ramp_on,
+    flicker_ramp_off
+};
 
-bool flicker_random( FlickerState* state );
-bool flicker_dropout( FlickerState* state );
-bool flicker_brownout( FlickerState* state );
-bool flicker_on( FlickerState* state );
-bool flicker_off( FlickerState* state );
-bool flicker_mostly_on( FlickerState* state );
-bool flicker_mostly_off( FlickerState* state );
-bool flicker_flicker_ramp_on( FlickerState* state );
-bool flicker_flicker_ramp_off( FlickerState* state );
-
-void fill_stack();
-
-void        stack_push( FlickerFunc );
-FlickerFunc stack_pop();
-int32_t     stack_depth();
+#define countof( a ) (sizeof( a ) / sizeof( a[0] ))
 
 
 // Code -----------------------------------------------------------------
@@ -98,14 +114,14 @@ void flickering_lights_setup()
     pinMode( LED_FLICKER_PIN, OUTPUT );
 
     memset( &s_flicker_state, 0, sizeof( s_flicker_state ) );
-    fill_stack();
+    randomly_fill_stack();
 }
 
  
 void flickering_lights_tick()
 {
     if( !s_flicker_func )
-        fill_stack();
+        randomly_fill_stack();
         
     // just keep calling the routine over and over until it is done
     if( s_flicker_func && s_flicker_func( &s_flicker_state ) )
@@ -113,39 +129,6 @@ void flickering_lights_tick()
         s_flicker_func = stack_pop();
         memset( &s_flicker_state, 0, sizeof( s_flicker_state ) );   // clear this for next func
     }
-
-/*
-    // just keep calling the routine over and over until it is done
-    if( s_flicker_func && s_flicker_func( &s_flicker_state ) )
-    {
-        if( s_flicker_func == flicker_dropout ) //flicker_brownout
-        {
-            ++s_counter;
-            if( s_counter > 1 )
-            {
-                s_counter = 0;
-                s_flicker_func = flicker_flicker_ramp_on;
-            }
-        }
-        else if( s_flicker_func == flicker_flicker_ramp_on )
-        {
-            ++s_counter;
-            if( s_counter > 2 ) // ramp twice
-            {
-                s_counter = 0;
-                s_flicker_func = flicker_random;
-            }
-        }
-        else
-        {
-            ++s_counter;
-            if( s_counter > 10000 )   // random routine only takes one cycle so
-                s_flicker_func = NULL;                     
-        }
-            
-        memset( &s_flicker_state, 0, sizeof( s_flicker_state ) );   // clear this for next func
-    }
-*/    
 }
 
 #pragma mark -
@@ -348,36 +331,43 @@ bool flicker_brownout( FlickerState* state )
 }
 
 
+
+// these all ramp up like a real flourescent light 
 bool flicker_on( FlickerState* state )
 {
+    analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
 
 
 bool flicker_off( FlickerState* state )
 {
+    analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
 
 
 bool flicker_mostly_on( FlickerState* state )
 {
+    analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
 
 
 bool flicker_mostly_off( FlickerState* state )
 {
+    analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
 
 
-bool flicker_flicker_ramp_on( FlickerState* state )
+
+bool flicker_ramp_on( FlickerState* state )
 {
     analogWrite( LED_FLICKER_PIN, state->step );
     state->step += 5;
     
-    // brown-out flicker first
+    // brown-out flicker
     if( state->step > 220 )
         analogWrite( LED_FLICKER_PIN, random( kFlickerBrownoutMinIntensity, kFlickerBrownoutMaxIntensity ) );
 
@@ -391,32 +381,36 @@ bool flicker_flicker_ramp_on( FlickerState* state )
 }
 
 
-bool flicker_flicker_ramp_off( FlickerState* state )
+bool flicker_ramp_off( FlickerState* state )
 {
-//    if( state->step > 220 )
-//        analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
-    return true;
+    analogWrite( LED_FLICKER_PIN, 255 - state->step );
+    state->step += 5;
+    
+    // blast brightness right at end
+    if( state->step > 220 )
+        analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
+
+    if( state->step > 255 )
+    {
+        state->step = 0;
+        return true;
+    }
+        
+    return false;
 }
 
 #pragma mark -
 
 
-void fill_stack()
-{
-    stack_push( flicker_dropout );
-    stack_push( flicker_dropout );
-    stack_push( flicker_dropout );
-    stack_push( flicker_flicker_ramp_on );
-    stack_push( flicker_random );
-    
-    s_flicker_func = stack_pop();    
-}
-
-
 void randomly_fill_stack()
 {
-    // create array of all funcs, and randomly choose from it to fill the stack
-    // !!@
+    // use array of all funcs, and randomly choose from it to fill the stack
+    for( int i = 0; i < STACK_MAX; i++ )
+    {
+        int8_t index = random( 0, countof( s_func_array ) );
+        stack_push( s_func_array[index] );
+    }
+    s_flicker_func = stack_pop();    
 }
 
 
