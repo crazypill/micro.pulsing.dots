@@ -48,7 +48,7 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 
 #ifndef ARDUINO_SAMD_ZERO
 // turn this define on for power savings on boards that support it
-#define POWER_SAVINGS
+//#define POWER_SAVINGS // disable for serial debugging too
 #endif
 
 
@@ -229,7 +229,8 @@ void loop()
 #ifdef USE_ACCELEROMETER
   float           accel_scale = 0.5f;
   sensors_event_t event       = {0}; 
-  lis.getEvent( &event );
+  lis.getEvent( &event );  
+//  Serial.print( "x: " ); Serial.println( event.acceleration.x );
 #endif  // USE_ACCELEROMETER
 
     // render a frame

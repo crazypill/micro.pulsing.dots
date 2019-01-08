@@ -15,6 +15,8 @@
 inline void utilities_setup() 
 {
     randomSeed( analogRead( 0 ) );
+    Serial.begin( 115200 );
+    Serial.println( "serial started" );
 }
  
 
