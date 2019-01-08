@@ -13,11 +13,13 @@
 
 //#define LED_FLICKER_PIN  LED_BUILTIN
 #define LED_FLICKER_PIN  9
+#define STACK_MAX        5 // keep this low for testing...
 
 typedef struct
 {
-    int32_t step;
-    int32_t start_time;    
+    uint32_t step;
+    uint32_t start_time;  
+    uint32_t param;  
 } FlickerState;
 
 // this is the flicker function, when it returns true it is done processing and the next function will execute if there's one
@@ -31,12 +33,27 @@ enum
     kFlickerDropoutState_FlickerStart,
     kFlickerDropoutState_Flicker,
     kFlickerDropoutState_Dropout,
+    kFlickerDropoutState_DropoutBlipStart,
+    kFlickerDropoutState_DropoutBlip,
     kFlickerDropoutState_DropoutDone
 };
 
-static const int32_t kFlickerDropoutStateWaitTimeMS = 3000;
-static const int32_t kFlickerDropoutFlickerTimeMS   = 1000;
-static const int32_t kFlickerDropoutDarkTimeMS      = 5000;
+enum
+{
+     kFlickerDropoutStateWaitTimeMS   = 3000,
+     kFlickerDropoutFlickerTimeMS     = 1000,
+     kFlickerDropoutDarkTimeMS        = 5000,
+     kFlickerDropoutBlipMinTimeMS     = 1200,      // this is the time we wait till blip (random between min and max)
+     kFlickerDropoutBlipMaxTimeMS     = 3000,
+     kFlickerDropoutBlipMinDurationMS = 50,
+     kFlickerDropoutBlipMaxDurationMS = 90
+};
+
+// this is the function stack
+static FlickerFunc  s_func_stack[STACK_MAX] = { NULL };
+static FlickerFunc* s_func_stack_base       = &s_func_stack[0];  
+static FlickerFunc* s_func_stack_top        = &s_func_stack[STACK_MAX];  
+static FlickerFunc* s_func_stack_pointer    = s_func_stack_base;  
 
 
 // Constants and static data----------------------------------------------------
@@ -113,6 +130,15 @@ void flickering_lights_tick()
     }
 }
 
+#pragma mark -
+
+// State stack -----------------------------------------------------------------
+
+
+
+
+#pragma mark -
+
 
 void flash_led( uint8_t num_pulses )
 {
@@ -149,8 +175,8 @@ bool flicker_random( FlickerState* state )
 
 bool flicker_dropout( FlickerState* state )
 {
-    int32_t current  = utime();
-    int32_t interval = current - state->start_time;
+    uint32_t current  = utime();
+    uint32_t interval = current - state->start_time;    
     
     // first step is to wait a long time with the light on, so we take the starting time
     if( state->step == kFlickerDropoutState_Start )
@@ -173,7 +199,7 @@ bool flicker_dropout( FlickerState* state )
 
     if( state->step == kFlickerDropoutState_FlickerStart )
     {
-        state->start_time = current;   // take the time...
+        state->start_time = current;
         state->step++;
         return false;
     }
@@ -189,13 +215,41 @@ bool flicker_dropout( FlickerState* state )
     if( state->step == kFlickerDropoutState_Dropout )
     {
         digitalWrite( LED_FLICKER_PIN, LOW );
-        state->start_time = current;   // take the time...
+        state->start_time = current;    
+        state->param      = random( kFlickerDropoutBlipMinTimeMS, kFlickerDropoutBlipMaxTimeMS );    // when to blip (blip might not even happen as its value is also random)
         state->step++;
         return false;
     }
 
+    // wait with the light off
+    if( state->step == kFlickerDropoutState_DropoutBlipStart )
+    {
+        if( interval >= state->param )  // random wait time here
+        {
+            state->start_time = current;
+            state->param = random( kFlickerDropoutBlipMinDurationMS, kFlickerDropoutBlipMaxDurationMS );
+            state->step++;
+        }
+        return false;
+    }
+
+    if( state->step == kFlickerDropoutState_DropoutBlip )
+    {
+        flicker_random( NULL );
+        if( interval >= state->param )  // random wait time again
+        {
+            state->start_time = current;
+            state->param = 0;
+            state->step++;
+        }
+        return false;
+    }
+
     if( state->step == kFlickerDropoutState_DropoutDone )
+    {
+        digitalWrite( LED_FLICKER_PIN, LOW );
         return interval > kFlickerDropoutDarkTimeMS;
+    }
 
     return true;
 }
