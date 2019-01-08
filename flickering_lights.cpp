@@ -81,11 +81,6 @@ bool flicker_mostly_off( FlickerState* state );
 bool flicker_flicker_ramp_on( FlickerState* state );
 bool flicker_flicker_ramp_off( FlickerState* state );
 
-static int32_t utime()
-{
-    return millis();
-}
-
 
 // Code -----------------------------------------------------------------
 
@@ -181,7 +176,7 @@ bool flicker_random( FlickerState* state )
 
 bool flicker_dropout( FlickerState* state )
 {
-    uint32_t current  = utime();
+    uint32_t current  = millis();
     uint32_t interval = current - state->start_time;    
     
     // first step is to wait a long time with the light on, so we take the starting time
@@ -263,7 +258,7 @@ bool flicker_dropout( FlickerState* state )
 
 bool flicker_brownout( FlickerState* state )
 {
-    uint32_t current  = utime();
+    uint32_t current  = millis();
     uint32_t interval = current - state->start_time;    
     
     // first step is to wait a long time with the light on, so we take the starting time

@@ -45,6 +45,7 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 
 #define Z_IS_UP   // our dev board has z up but in production the boards are standing up(sidedown)
 #define USE_ACCELEROMETER
+#define RENDER_DOTS
 
 #ifndef ARDUINO_SAMD_ZERO
 // turn this define on for power savings on boards that support it
@@ -233,6 +234,9 @@ void loop()
 //  Serial.print( "x: " ); Serial.println( event.acceleration.x );
 #endif  // USE_ACCELEROMETER
 
+#ifdef RENDER_DOTS
+//    uint32_t start_time = millis();
+
     // render a frame
 #ifdef USE_ACCELEROMETER
   #ifdef Z_IS_UP
@@ -251,7 +255,10 @@ void loop()
     buffer_frame( DISPLAY1, buf, &s_display_one_page );
 #ifdef TWO_DISPLAYS
     buffer_frame( DISPLAY2, &buf[144], &s_display_two_page );
-#endif  
+#endif
+//    uint32_t elapsed_time = millis() - start_time;
+//    Serial.print( "elapsed_time (ms): " ); Serial.println( elapsed_time );
+#endif // RENDER_DOTS
 
   if( kFrameDelayMS )
     delay( kFrameDelayMS );
