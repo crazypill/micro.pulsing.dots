@@ -91,7 +91,7 @@ void flickering_lights_setup()
     pinMode( LED_FLICKER_PIN, OUTPUT );
 
     memset( &s_flicker_state, 0, sizeof( s_flicker_state ) );
-    s_flicker_func = flicker_brownout;//flicker_dropout;
+    s_flicker_func = flicker_dropout; // flicker_brownout
 }
 
  
@@ -102,7 +102,7 @@ void flickering_lights_tick()
     // just keep calling the routine over and over until it is done
     if( s_flicker_func && s_flicker_func( &s_flicker_state ) )
     {
-        if( s_flicker_func == flicker_brownout )//flicker_dropout )
+        if( s_flicker_func == flicker_dropout ) //flicker_brownout
         {
             ++s_counter;
             if( s_counter > 1 )
@@ -207,7 +207,7 @@ bool flicker_dropout( FlickerState* state )
     
     if( state->step == kFlickerDropoutState_Flicker )
     {
-        digitalWrite( LED_FLICKER_PIN, coin_flip() ? HIGH : LOW );
+        flicker_random( NULL );
         if( interval >= kFlickerDropoutFlickerTimeMS )
             state->step++;
         return false;
@@ -289,7 +289,7 @@ bool flicker_brownout( FlickerState* state )
     
     if( state->step == kFlickerDropoutState_Flicker )
     {
-        digitalWrite( LED_FLICKER_PIN, coin_flip() ? HIGH : LOW );
+        flicker_random( NULL );
         if( interval >= kFlickerDropoutFlickerTimeMS )
             state->step++;
         return false;

@@ -223,8 +223,6 @@ void loop()
   power_twi_enable();
 #endif
 
-// see how fast we can get this to flicker 
-//  toggle_led();
   flickering_lights_tick();
 
 #ifdef USE_ACCELEROMETER
@@ -237,7 +235,7 @@ void loop()
 #ifdef RENDER_DOTS
 //    uint32_t start_time = millis();
 
-    // render a frame
+    // render a frame - about 19ms on Pro Trinket 12Mhz
 #ifdef USE_ACCELEROMETER
   #ifdef Z_IS_UP
     // display is laying down = Z is up
@@ -249,13 +247,18 @@ void loop()
 #else
     pulsing_dots_draw( 0, 0, 0, kShouldErase );
 #endif  // USE_ACCELEROMETER
-    
+
+//    uint32_t render_time = millis() - start_time;
+//    Serial.print( "render_time (ms): " ); Serial.println( render_time );
+
     // output the frame
     uint8_t* buf = pulsing_dots_get_render_buffer();
     buffer_frame( DISPLAY1, buf, &s_display_one_page );
 #ifdef TWO_DISPLAYS
     buffer_frame( DISPLAY2, &buf[144], &s_display_two_page );
 #endif
+    
+    // Total render time about 60ms on Pro Trinket 12Mhz (so 40ms spent talking over i2c)
 //    uint32_t elapsed_time = millis() - start_time;
 //    Serial.print( "elapsed_time (ms): " ); Serial.println( elapsed_time );
 #endif // RENDER_DOTS
