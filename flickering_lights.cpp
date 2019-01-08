@@ -40,19 +40,19 @@ enum
 
 enum
 {
-     kFlickerDropoutStateWaitTimeMS   = 3000,
-     kFlickerDropoutFlickerTimeMS     = 1000,
-     kFlickerDropoutDarkTimeMS        = 5000,
-     kFlickerDropoutBlipMinTimeMS     = 1200,      // this is the time we wait till blip (random between min and max)
-     kFlickerDropoutBlipMaxTimeMS     = 3000,
-     kFlickerDropoutBlipMinDurationMS = 50,
-     kFlickerDropoutBlipMaxDurationMS = 90,
-     
-     kFlickerBrownoutMinIntensity = 10,
-     kFlickerBrownoutMaxIntensity = 80,
+    kFlickerDropoutStateWaitTimeMS   = 3000,
+    kFlickerDropoutFlickerTimeMS     = 1000,
+    kFlickerDropoutDarkTimeMS        = 5000,
+    kFlickerDropoutBlipMinTimeMS     = 1200,      // this is the time we wait till blip (random between min and max)
+    kFlickerDropoutBlipMaxTimeMS     = 3000,
+    kFlickerDropoutBlipMinDurationMS = 50,
+    kFlickerDropoutBlipMaxDurationMS = 90,
 
-     kFlickerFlourescentMinIntensity = 230,
-     kFlickerFlourescentMaxIntensity = 255
+    kFlickerBrownoutMinIntensity = 10,
+    kFlickerBrownoutMaxIntensity = 80,
+
+    kFlickerFlourescentMinIntensity = 230,
+    kFlickerFlourescentMaxIntensity = 255
 };
 
 
@@ -335,6 +335,7 @@ bool flicker_brownout( FlickerState* state )
 // these all ramp up like a real flourescent light 
 bool flicker_on( FlickerState* state )
 {
+    // this should blink a number of times, then go super bright, then dim to "normal"
     analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
@@ -342,6 +343,7 @@ bool flicker_on( FlickerState* state )
 
 bool flicker_off( FlickerState* state )
 {
+    // this should just be a series of blinks, then off
     analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
@@ -349,6 +351,7 @@ bool flicker_off( FlickerState* state )
 
 bool flicker_mostly_on( FlickerState* state )
 {
+    // this just a lot of spaced-out blinks
     analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
@@ -356,6 +359,7 @@ bool flicker_mostly_on( FlickerState* state )
 
 bool flicker_mostly_off( FlickerState* state )
 {
+    // this just a lot of very-very-spaced-out blinks
     analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
     return true;
 }
