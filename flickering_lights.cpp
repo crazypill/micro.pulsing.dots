@@ -20,12 +20,13 @@ typedef struct
     uint32_t step;
     uint32_t start_time;  
     uint32_t param;  
+    uint32_t counter;
 } FlickerState;
 
 // this is the flicker function, when it returns true it is done processing and the next function will execute if there's one
 typedef bool (*FlickerFunc)( FlickerState* state );
 
-
+// ------------------------------------------
 enum
 {
     kFlickerDropoutState_Start = 0,
@@ -40,19 +41,48 @@ enum
 
 enum
 {
-    kFlickerDropoutStateWaitTimeMS   = 3000,
+    kFlickerDropoutStateWaitTimeMS   = 6000,
     kFlickerDropoutFlickerTimeMS     = 1000,
-    kFlickerDropoutDarkTimeMS        = 5000,
+    kFlickerDropoutDarkTimeMS        = 4000,
     kFlickerDropoutBlipMinTimeMS     = 1200,      // this is the time we wait till blip (random between min and max)
-    kFlickerDropoutBlipMaxTimeMS     = 3000,
+    kFlickerDropoutBlipMaxTimeMS     = 2500,
     kFlickerDropoutBlipMinDurationMS = 50,
     kFlickerDropoutBlipMaxDurationMS = 90,
 
-    kFlickerBrownoutMinIntensity = 10,
-    kFlickerBrownoutMaxIntensity = 80,
+    kFlickerBrownoutMinIntensity     = 40,
+    kFlickerBrownoutMaxIntensity     = 100,
 
-    kFlickerFlourescentMinIntensity = 230,
-    kFlickerFlourescentMaxIntensity = 255
+    kFlickerBurstMinIntensity        = 230,
+    kFlickerBurstMaxIntensity        = 255,
+
+    kFlickerFlourescentMaxIntensity  = 220
+};
+
+
+// ------------------------------------------
+enum
+{
+    kFlickerState_Start = 0,
+    kFlickerState_Wait,
+    kFlickerState_FlickerStart,
+    kFlickerState_Flicker
+};
+
+enum
+{
+    kFlickerMostlyOffMinTimeMS  = 100,      // this is the time we wait till flicker (random between min and max)
+    kFlickerMostlyOffMaxTimeMS  = 1000,
+    
+    kFlickerMostlyOnMinTimeMS   = 20,      // this is the time we wait till flicker (random between min and max)
+    kFlickerMostlyOnMaxTimeMS   = 400,
+    
+    kFlickerMostlyMinDurationMS = 50,
+    kFlickerMostlyMaxDurationMS = 90,
+    
+    kFlickerMostlyMinIntensity  = 200,
+    kFlickerMostlyMaxIntensity  = 220,
+
+    kFlickerMostlyFlickerCount  = 10
 };
 
 
@@ -175,8 +205,8 @@ bool flicker_dropout( FlickerState* state )
     // first step is to wait a long time with the light on, so we take the starting time
     if( state->step == kFlickerDropoutState_Start )
     {
-        // turn on the light
-        digitalWrite( LED_FLICKER_PIN, HIGH );
+        // turn on the light but not all the way!
+        analogWrite( LED_FLICKER_PIN, kFlickerFlourescentMaxIntensity );
         state->start_time = current;   // take the time...
         state->step++;  // go to next step
         return false;   // we aren't done yet
@@ -258,7 +288,7 @@ bool flicker_brownout( FlickerState* state )
     if( state->step == kFlickerDropoutState_Start )
     {
         // turn on the light
-        digitalWrite( LED_FLICKER_PIN, HIGH );
+        analogWrite( LED_FLICKER_PIN, kFlickerFlourescentMaxIntensity );
         state->start_time = current;   // take the time...
         state->step++;  // go to next step
         return false;   // we aren't done yet
@@ -332,36 +362,113 @@ bool flicker_brownout( FlickerState* state )
 
 
 
-// these all ramp up like a real flourescent light 
+// these all ramp up like a real flourescent light !!@ - implement me!!@ 
 bool flicker_on( FlickerState* state )
 {
     // this should blink a number of times, then go super bright, then dim to "normal"
-    analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
+    analogWrite( LED_FLICKER_PIN, random( kFlickerBurstMinIntensity, kFlickerBurstMaxIntensity ) );
     return true;
 }
 
 
+// these all ramp up like a real flourescent light !!@ - implement me!!@ 
 bool flicker_off( FlickerState* state )
 {
     // this should just be a series of blinks, then off
-    analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
+    analogWrite( LED_FLICKER_PIN, random( kFlickerBurstMinIntensity, kFlickerBurstMaxIntensity ) );
     return true;
 }
 
 
 bool flicker_mostly_on( FlickerState* state )
 {
-    // this just a lot of spaced-out blinks - use a bit array with each bit being of a particular interval,
-    // then do this for each 1 bit, and black out for 0 bits.
-    analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
+    uint32_t current  = millis();
+    uint32_t interval = current - state->start_time;    
+
+    // take a random amount of time to wait
+    if( state->step == kFlickerState_Start )
+    {
+        state->start_time = current;    
+        state->param      = random( kFlickerMostlyOnMinTimeMS, kFlickerMostlyOnMaxTimeMS );    // how long to wait till a flicker
+        state->step++;
+        return false;
+    }
+
+    if( state->step == kFlickerState_Wait )
+    {
+        if( interval >= state->param )
+            state->step++;
+        return false;
+    }
+
+    if( state->step == kFlickerState_FlickerStart )
+    {
+        state->start_time = current;
+        state->param      = random( kFlickerMostlyMinDurationMS, kFlickerMostlyMaxDurationMS ); // how long is this flicker
+        state->step++;
+        return false;
+    }
+    
+    if( state->step == kFlickerState_Flicker )
+    {
+        // we want bright flickers, flicker_random produces alot of low flickers too which we don't want, it's all or nothing here
+        analogWrite( LED_FLICKER_PIN, random( kFlickerMostlyMinIntensity, kFlickerMostlyMaxIntensity ) );
+        if( interval >= state->param )
+        {
+            digitalWrite( LED_FLICKER_PIN, LOW );
+            state->step = 0; // restart the cycle a few times
+        }
+        
+        return (++state->counter > kFlickerMostlyFlickerCount);
+    }
+
     return true;
 }
 
 
+// !!@ refactor this- it's exactly the same as mostly_on but with different constants !!@
 bool flicker_mostly_off( FlickerState* state )
 {
-    // this just a lot of very-very-spaced-out blinks -- see above comment...
-    analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
+    uint32_t current  = millis();
+    uint32_t interval = current - state->start_time;    
+
+    // take a random amount of time to wait
+    if( state->step == kFlickerState_Start )
+    {
+        state->start_time = current;    
+        state->param      = random( kFlickerMostlyOffMinTimeMS, kFlickerMostlyOffMaxTimeMS );    // how long to wait till a flicker
+        state->step++;
+        return false;
+    }
+
+    if( state->step == kFlickerState_Wait )
+    {
+        if( interval >= state->param )
+            state->step++;
+        return false;
+    }
+
+    if( state->step == kFlickerState_FlickerStart )
+    {
+        state->start_time = current;
+        state->param      = random( kFlickerMostlyMinDurationMS, kFlickerMostlyMaxDurationMS ); // how long is this flicker
+        state->step++;
+        return false;
+    }
+    
+    if( state->step == kFlickerState_Flicker )
+    {
+        // we want bright flickers, flicker_random produces alot of low flickers too which we don't want, it's all or nothing here
+        analogWrite( LED_FLICKER_PIN, random( kFlickerMostlyMinIntensity, kFlickerMostlyMaxIntensity ) );
+        if( interval >= state->param )
+        {
+            digitalWrite( LED_FLICKER_PIN, LOW );
+            state->step = 0; // restart the cycle a few times
+        }
+        
+        return (++state->counter > kFlickerMostlyFlickerCount);
+    }
+
     return true;
 }
 
@@ -393,7 +500,7 @@ bool flicker_ramp_off( FlickerState* state )
     
     // blast brightness right at end
     if( state->step > 220 )
-        analogWrite( LED_FLICKER_PIN, random( kFlickerFlourescentMinIntensity, kFlickerFlourescentMaxIntensity ) );
+        analogWrite( LED_FLICKER_PIN, random( kFlickerBurstMinIntensity, kFlickerBurstMaxIntensity ) );
 
     if( state->step > 255 )
     {
@@ -415,6 +522,7 @@ void randomly_fill_stack()
         int8_t index = random( 0, countof( s_func_array ) );
         stack_push( s_func_array[index] );
     }
+    
     s_flicker_func = stack_pop();    
 }
 
@@ -428,7 +536,7 @@ void stack_push( FlickerFunc func )
     if( s_func_stack_index > STACK_MAX )
     {
         s_func_stack_index = STACK_MAX - 1;
-        Serial.println( "Flicker stack overflow!" );
+        Serial.println( "flicker stack overflow!" );
         return;
     }
     s_func_stack[s_func_stack_index++] = func;
@@ -441,7 +549,6 @@ FlickerFunc stack_pop()
     if( s_func_stack_index < 0 )
     {
         s_func_stack_index = 0;
-        Serial.println( "Flicker stack underflow!" );
         return NULL;
     }
     return func;

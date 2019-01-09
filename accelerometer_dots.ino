@@ -261,6 +261,9 @@ void loop()
     // Total render time about 60ms on Pro Trinket 12Mhz (so 40ms spent talking over i2c)
 //    uint32_t elapsed_time = millis() - start_time;
 //    Serial.print( "elapsed_time (ms): " ); Serial.println( elapsed_time );
+#else
+    // Total render time about 60ms on Pro Trinket 12Mhz
+    delay( 60 );
 #endif // RENDER_DOTS
 
   if( kFrameDelayMS )
