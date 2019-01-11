@@ -97,6 +97,7 @@ bool flicker_mostly_on( FlickerState* state );
 bool flicker_mostly_off( FlickerState* state );
 bool flicker_ramp_on( FlickerState* state );
 bool flicker_ramp_off( FlickerState* state );
+bool flicker_bad_wiring( FlickerState* state );
 
 void randomly_fill_stack();
 
@@ -124,12 +125,24 @@ static FlickerFunc  s_func_array[] =
     flicker_random,
     flicker_dropout,
     flicker_brownout,
+    flicker_brownout,
+    flicker_on,         // we stack a bunch of these to increase the chances of the light staying on more often than flickering
     flicker_on,
+    flicker_on,
+    flicker_on,
+    flicker_on,
+    flicker_on,
+    flicker_off,
+    flicker_off,
     flicker_off,
     flicker_mostly_on,
     flicker_mostly_off,
     flicker_ramp_on,
-    flicker_ramp_off
+    flicker_ramp_on,
+    flicker_ramp_on,
+    flicker_ramp_off,
+    flicker_bad_wiring,
+    flicker_bad_wiring
 };
 
 #define countof( a ) (sizeof( a ) / sizeof( a[0] ))
@@ -362,7 +375,7 @@ bool flicker_brownout( FlickerState* state )
 
 
 
-// these all ramp up like a real flourescent light !!@ - implement me!!@ 
+// these all ramp up like a real flourescent light !!@ - implement me!!@  
 bool flicker_on( FlickerState* state )
 {
     // this should blink a number of times, then go super bright, then dim to "normal"
@@ -511,8 +524,30 @@ bool flicker_ramp_off( FlickerState* state )
     return false;
 }
 
-#pragma mark -
 
+bool flicker_bad_wiring( FlickerState* state )
+{
+    uint32_t current  = millis();
+    uint32_t interval = current - state->start_time;    
+
+    // randomly wiggle the amplitude
+    analogWrite( LED_FLICKER_PIN, random( kFlickerBrownoutMinIntensity, kFlickerBrownoutMaxIntensity ) );
+
+    // take a random amount of time to wait
+    if( state->step == kFlickerState_Start )
+    {
+        state->start_time = current;    
+        state->param      = random( kFlickerMostlyOnMinTimeMS, kFlickerDropoutDarkTimeMS );    // how long wiggle the amplitude
+        state->step++;
+        return false;
+    }
+
+    return interval >= state->param;
+}
+
+
+
+#pragma mark -
 
 void randomly_fill_stack()
 {
@@ -525,6 +560,7 @@ void randomly_fill_stack()
     
     s_flicker_func = stack_pop();    
 }
+
 
 
 #pragma mark -

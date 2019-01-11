@@ -43,7 +43,7 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 #define DISPLAY1 0x74        // I2C address of Charlieplex matrix
 #define DISPLAY2 0x77        // I2C address of Charlieplex matrix
 
-#define Z_IS_UP   // our dev board has z up but in production the boards are standing up(sidedown)
+//#define Z_IS_UP   // our dev board has z up but in production the boards are standing up(sidedown)
 #define USE_ACCELEROMETER
 #define RENDER_DOTS
 
